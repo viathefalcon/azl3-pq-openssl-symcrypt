@@ -1,0 +1,33 @@
+{
+  "vcpkg": {
+    "version": "2026-09-26-51bf87ca6e9bf3e622d84ff323bd202ab1ca0c0b",
+    "url": "https://github.com/microsoft/vcpkg-tool/releases/download/2026-09-26/vcpkg.exe",
+    "sha256": "2a4ae1467b9e797964c60c919d057b9e5dc1ec03f4b9632c1150026db25201f2"
+  },
+  "sources": [
+    {
+      "name": "openssl",
+      "version": "3.6.5",
+      "commit": "c8bd5a57108599ac650bbae77fcabe3109dab2e8",
+      "archive": "openssl-3.6.5.tar.gz",
+      "url": "https://github.com/openssl/openssl/archive/openssl-3.6.5.tar.gz",
+      "sha512": "40f0b346a9a5cf4cb37f1ecebdc74750c39a95783710061bfac58964883b0831543ecee0aee9f747ea093781b13c58a543b0b935d222519e3cb19648d77a0276"
+    },
+    {
+      "name": "symcrypt",
+      "version": "103.13.0",
+      "commit": "286762b7730e2b780678f5ab11fef2b1bad639e0",
+      "archive": "symcrypt-103.13.0.tar.gz",
+      "url": "https://github.com/microsoft/SymCrypt/archive/286762b7730e2b780678f5ab11fef2b1bad639e0.tar.gz",
+      "sha512": "1503649b005f5b5b54e4c045af86c87f59e9bbe27b7fc00ca703bb7b8719e99c1aa481b55fa797badc92861d0174b293f3c5c4a484c47d4f596061da5f11797e"
+    },
+    {
+      "name": "symcrypt-openssl",
+      "version": "1.11.2",
+      "commit": "5fed2d23b8de515fbd791edca1d24cc99b2ac835",
+      "archive": "symcrypt-openssl-1.11.2.tar.gz",
+      "url": "https://github.com/microsoft/SymCrypt-OpenSSL/archive/5fed2d23b8de515fbd791edca1d24cc99b2ac835.tar.gz",
+      "sha512": "2ad88ae6a6247603e325a4a363b9e79356ca89369525a08068221b08691872b69b8df6b4eed15f3cc3c44304a181cdb2be15287627ae458175f9b8184190f624"
+    }
+  ]
+}

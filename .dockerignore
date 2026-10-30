@@ -1,0 +1,8 @@
+**
+!Dockerfile
+!sources.lock.json
+!openssl.cnf
+!src/
+!src/**
+!downloads/
+!downloads/*.tar.gz
