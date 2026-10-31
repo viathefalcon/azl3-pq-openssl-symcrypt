@@ -14,14 +14,6 @@
       "sha512": "40f0b346a9a5cf4cb37f1ecebdc74750c39a95783710061bfac58964883b0831543ecee0aee9f747ea093781b13c58a543b0b935d222519e3cb19648d77a0276"
     },
     {
-      "name": "symcrypt",
-      "version": "103.13.0",
-      "commit": "286762b7730e2b780678f5ab11fef2b1bad639e0",
-      "archive": "symcrypt-103.13.0.tar.gz",
-      "url": "https://github.com/microsoft/SymCrypt/archive/286762b7730e2b780678f5ab11fef2b1bad639e0.tar.gz",
-      "sha512": "1503649b005f5b5b54e4c045af86c87f59e9bbe27b7fc00ca703bb7b8719e99c1aa481b55fa797badc92861d0174b293f3c5c4a484c47d4f596061da5f11797e"
-    },
-    {
       "name": "symcrypt-openssl",
       "version": "1.11.2",
       "commit": "5fed2d23b8de515fbd791edca1d24cc99b2ac835",

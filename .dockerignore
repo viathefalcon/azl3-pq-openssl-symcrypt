@@ -4,5 +4,7 @@
 !openssl.cnf
 !src/
 !src/**
+!tests/
+!tests/validate_results.py
 !downloads/
 !downloads/*.tar.gz
