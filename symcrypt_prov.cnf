@@ -1,0 +1,4 @@
+[symcrypt_prov_sect]
+activate = 1
+identity = symcryptprovider
+module = /usr/src/app/runtime/openssl/lib/ossl-modules/symcryptprovider.so

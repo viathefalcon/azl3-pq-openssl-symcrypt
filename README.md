@@ -69,8 +69,9 @@ jobs. Use `wslc.exe` for container construction and execution.
   OpenSSL and `/usr/include/symcrypt.h`, and links to `/usr/lib/libsymcrypt.so`.
   The base image's `libsymcrypt.so.103.8.0` is not rebuilt or postprocessed.
   The distro's existing `symcryptprovider.so` is not used by private OpenSSL.
-- The private OpenSSL configuration loads both the default and SymCrypt
-  providers and prefers SymCrypt with `?provider=symcryptprovider`.
+- The private configuration activates the default provider and prefers SymCrypt
+  with `?provider=symcryptprovider`. Ported Azure Linux code automatically loads
+  SymCrypt using the private `ssl/symcrypt_prov.cnf`.
 - `/usr/src/app/provider-probe` creates separate OpenSSL library contexts for
   the test modes instead of relying on the process-wide configuration.
 
@@ -81,6 +82,58 @@ but does not establish approved-mode operation or certificate coverage for
 this integration. Optional fallback to OpenSSL's default provider remains
 intentional. This experiment makes no FIPS validation or production readiness
 claim. OpenSSL 3.6 reaches end of support on 1 November 2026.
+
+## Azure Linux FIPS-mode integration
+
+The build applies two vendored patches before compiling OpenSSL 3.6.5:
+`patches/0001-azurelinux-kernel-fips.patch` and
+`patches/0002-azurelinux-provider-selection.patch`. Their source is
+Microsoft's Azure Linux revision
+`a526a629b8ff3db2ec8a9633803506bd61118bca`, under `SPECS/openssl/`:
+`0009-Add-Kernel-FIPS-mode-flag-support.patch` and
+`0032-Force-fips-symcrypt-or-fips-AZL3.patch`. Only the first patch's surrounding
+context needed adaptation; the provider-selection implementation is unchanged.
+Application uses `patch --batch --fuzz=0`, so a source mismatch fails the build.
+
+During default-context initialization, private libcrypto reads
+`/proc/sys/crypto/fips_enabled`. If `OPENSSL_FORCE_FIPS_MODE` is present, its
+internal flag is enabled regardless of the variable's value, including `0`
+or an empty string. Unset the variable to stop forcing the flag. This reproduces
+the distro behavior; the override does not enable host FIPS mode.
+
+During provider configuration, if neither SymCrypt nor `fips` is already
+activated:
+
+- Without the flag, loading SymCrypt from the sidecar is best effort.
+- With the flag, OpenSSL tries SymCrypt first, then the OpenSSL `fips` provider,
+  and reports configuration failure if neither loading helper succeeds.
+- When this path loads `fips`, it also loads `base` and enables default
+  `fips=yes` properties. The image does not install an OpenSSL FIPS module.
+
+As in the distro configuration, `alg_section` precedes `providers` in
+`openssl_init`; otherwise setting the optional preference afterward would
+overwrite the fallback path's newly enabled `fips=yes` properties.
+
+The sidecar paths are relative to the compiled private `OPENSSLDIR`:
+`/usr/src/app/runtime/openssl/ssl/symcrypt_prov.cnf` and `fipsmodule.cnf`.
+The SymCrypt sidecar points explicitly to our private adapter, not the distro's
+adapter. In flagged mode, absent sidecars also permit loading providers by name
+from the private module directory.
+
+These hooks run through OpenSSL's configuration machinery. Applications that
+disable configuration loading or create independently configured contexts do
+not automatically gain this behavior. Already activated SymCrypt/`fips`
+providers bypass the additional selection logic.
+
+In particular, the SymCrypt branch does **not** enable `fips=yes` or disable
+default-provider fallback. This is vendor integration behavior, not enforcement
+of approved-only services and not a FIPS compliance claim.
+
+There is also an upstream failure-handling quirk: a parsed sidecar whose
+provider fails non-fatally to activate can be counted as a successful load by
+the patch. In that case, even flagged startup can succeed with only the default
+provider. This port deliberately preserves that behavior. The build tests it
+separately from the absent-sidecar/absent-module case, which fails startup.
 
 ## Build-time compatibility gate
 
@@ -105,8 +158,19 @@ Package identities and checked library paths are saved in
 `/usr/src/app/runtime/compatibility.txt`.
 
 With `LD_BIND_NOW=1`, the build then checks configuration/provider selection
-and runs the complete operation matrix, validating the resulting Markdown
-against `tests/validate_results.py`. Thus a successful build establishes
+and runs `tests/test_fips_integration.py`. These container-only tests exercise
+normal mode, the forced flag (including `0` and empty values), automatic loading
+without a sidecar, already-activated providers, and missing/malformed provider
+failures. A test-only preload library redirects the kernel flag read to fixture
+files, allowing both kernel states to be tested without modifying the host.
+For fallback control-flow tests only, OpenSSL's legacy module stands in for a
+provider named `fips`; tests verify that `base` loads and default `fips=yes`
+properties are enabled. This fixture is not a FIPS module and performs no
+approved cryptography. Its temporary configuration and alias are removed.
+The tests restore any temporary changes to the private sidecar and module.
+The build also runs the complete operation matrix, validating the resulting
+Markdown against `tests/validate_results.py`.
+Thus a successful build establishes
 source API compatibility, ELF relocation compatibility, intended library
 selection, and behavior for the tested operations. It is not proof of every
 API interaction or FIPS compliance. Build tools remain sourced from unpinned

@@ -6,7 +6,7 @@ ARG SCOSSL_ARCHIVE=symcrypt-openssl-1.11.2.tar.gz
 RUN mkdir -p /build \
     && rpm -q SymCrypt SymCrypt-OpenSSL openssl-libs > /build/base-crypto-packages.txt \
     && sha256sum /usr/include/symcrypt* /usr/lib/libsymcrypt.so.103.8.0 > /build/base-symcrypt.sha256
-RUN tdnf install -y gcc gcc-c++ make perl cmake python3 tar gzip binutils glibc-devel \
+RUN tdnf install -y gcc gcc-c++ make perl cmake python3 tar gzip binutils glibc-devel patch \
     && tdnf clean all
 RUN tdnf install -y kernel-headers && tdnf clean all \
     && sha256sum -c /build/base-symcrypt.sha256
@@ -22,7 +22,10 @@ RUN python3 /build/verify_sources.py /build/sources.lock.json /build/downloads \
     && tar -xzf "/build/downloads/${SCOSSL_ARCHIVE}" -C symcrypt-openssl --strip-components=1
 
 WORKDIR /usr/src/app/openssl
-RUN ./Configure linux-x86_64 \
+COPY patches/ /build/patches/
+RUN patch --batch --fuzz=0 -p1 < /build/patches/0001-azurelinux-kernel-fips.patch \
+    && patch --batch --fuzz=0 -p1 < /build/patches/0002-azurelinux-provider-selection.patch \
+    && ./Configure linux-x86_64 \
         --prefix=/usr/src/app/runtime/openssl \
         --openssldir=/usr/src/app/runtime/openssl/ssl \
         --libdir=lib shared no-tests \
@@ -52,10 +55,14 @@ FROM crypto-deps AS probe
 ENV OPENSSL_CONF=/usr/src/app/runtime/openssl/ssl/openssl.cnf \
     OPENSSL_MODULES=/usr/src/app/runtime/openssl/lib/ossl-modules
 COPY openssl.cnf /usr/src/app/runtime/openssl/ssl/openssl.cnf
+COPY symcrypt_prov.cnf /usr/src/app/runtime/openssl/ssl/symcrypt_prov.cnf
 COPY src/provider_probe.c /build/provider_probe.c
 COPY src/config_check.c /build/config_check.c
 COPY src/validate_compatibility.py /build/validate_compatibility.py
 COPY tests/validate_results.py /build/validate_results.py
+COPY tests/test_fips_integration.py /build/test_fips_integration.py
+COPY tests/fips_host_flag.c /build/fips_host_flag.c
+COPY tests/fips_properties.c /build/fips_properties.c
 RUN cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -D_AMD64_ \
         -I/usr/src/app/runtime/openssl/include \
         -L/usr/src/app/runtime/openssl/lib \
@@ -69,6 +76,13 @@ RUN cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -D_AMD64_ \
     && cat /usr/src/app/runtime/compatibility.txt \
     && LD_BIND_NOW=1 /build/config-check \
     && LD_BIND_NOW=1 /usr/src/app/runtime/openssl/bin/openssl list -providers -provider default -provider symcryptprovider \
+    && cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror -shared -fPIC \
+        -o /build/fips-host-flag.so /build/fips_host_flag.c -ldl \
+    && cc -std=c11 -O2 -Wall -Wextra -Wpedantic -Werror \
+        -I/usr/src/app/runtime/openssl/include \
+        -L/usr/src/app/runtime/openssl/lib \
+        -o /build/fips-properties /build/fips_properties.c -lcrypto \
+    && python3 /build/test_fips_integration.py \
     && LD_BIND_NOW=1 /usr/src/app/provider-probe > /build/results.md \
     && python3 /build/validate_results.py /build/results.md
 WORKDIR /usr/src/app

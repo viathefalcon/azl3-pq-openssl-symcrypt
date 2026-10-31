@@ -1,19 +1,15 @@
 openssl_conf = openssl_init
+config_diagnostics = 1
 
 [openssl_init]
-providers = provider_section
 alg_section = algorithm_section
+providers = provider_section
 
 [provider_section]
 default = default_section
-symcryptprovider = symcrypt_section
 
 [default_section]
 activate = 1
-
-[symcrypt_section]
-activate = 1
-module = /usr/src/app/runtime/openssl/lib/ossl-modules/symcryptprovider.so
 
 [algorithm_section]
 default_properties = ?provider=symcryptprovider

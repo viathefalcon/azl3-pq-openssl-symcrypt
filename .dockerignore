@@ -2,9 +2,15 @@
 !Dockerfile
 !sources.lock.json
 !openssl.cnf
+!symcrypt_prov.cnf
 !src/
 !src/**
 !tests/
 !tests/validate_results.py
+!tests/test_fips_integration.py
+!tests/fips_host_flag.c
+!tests/fips_properties.c
+!patches/
+!patches/*.patch
 !downloads/
 !downloads/*.tar.gz
